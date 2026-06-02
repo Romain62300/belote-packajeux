@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Belote — PackaJeux</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ÉCRAN D'ACCUEIL
+═══════════════════════════════════════════════════════════════ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-layout">
+    <section class="hero-panel">
+      <div class="brand-line"><span class="brand-mark">♣</span><span>PackaJeux</span></div>
+      <h1>Belote</h1>
+      <p class="tagline">Une version claire, moderne et pensée pour des parties façon concours.</p>
+      <div class="hero-actions">
+        <button id="btn-start" class="btn-primary">Commencer la partie</button>
+        <button id="btn-open-rules" class="btn-secondary" type="button">Voir les règles</button>
+      </div>
+    </section>
+
+    <section class="setup-panel" aria-label="Configuration de la partie">
+      <h2>Nouvelle partie</h2>
+      <p class="setup-intro">Choisis le format avant de lancer la manche.</p>
+
+      <div class="setting-group">
+        <span class="setting-title">Objectif</span>
+        <div class="choice-row" id="target-options">
+          <label><input type="radio" name="targetScore" value="1001" checked> 1001 pts</label>
+          <label><input type="radio" name="targetScore" value="1501"> 1501 pts</label>
+          <label><input type="radio" name="targetScore" value="2001"> 2001 pts</label>
+        </div>
+        <p class="setting-help">1001 pour une partie standard. 1501 ou 2001 si tu joues avec annonces.</p>
+      </div>
+
+      <div class="setting-group">
+        <span class="setting-title">Annonces</span>
+        <label class="switch-line"><input id="opt-announcements" type="checkbox" checked> Activer tierces, cinquantes, cents et carrés</label>
+        <label class="switch-line"><input id="opt-belote" type="checkbox" checked> Belote-Rebelote</label>
+      </div>
+
+      <div class="setting-group">
+        <span class="setting-title">Mode</span>
+        <div class="choice-row disabled-options" title="Prévu pour une prochaine version">
+          <label><input type="radio" name="variant" value="classic" checked> Classique</label>
+          <label><input type="radio" name="variant" value="sans-atout" disabled> Sans Atout</label>
+          <label><input type="radio" name="variant" value="tout-atout" disabled> Tout Atout</label>
+          <label><input type="radio" name="variant" value="coinche" disabled> Coinche</label>
+        </div>
+        <p class="setting-help">La logique actuelle joue la belote classique à l’atout. Les variantes sont affichées pour préparer l’évolution du jeu.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ÉCRAN DE JEU PRINCIPAL
+═══════════════════════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- Barre de score en haut -->
+  <header class="scorebar">
+    <div class="team-score" id="score-ns">
+      <span class="team-label">Vous &amp; Sud</span>
+      <span class="score-value" id="score-ns-val">0</span>
+    </div>
+    <div class="game-info">
+      <span id="info-trump">Atout : —</span>
+      <span id="info-round">Manche 1</span>
+      <span id="info-target">Objectif : 1001 pts</span>
+    </div>
+    <div class="team-score" id="score-ew">
+      <span class="team-label">Est &amp; Ouest</span>
+      <span class="score-value" id="score-ew-val">0</span>
+    </div>
+  </header>
+
+  <!-- Table de jeu -->
+  <main class="game-table">
+
+    <!-- Joueur Nord (bot) -->
+    <div class="player-zone north" id="zone-north">
+      <div class="player-info">
+        <span class="player-name">Nord</span>
+        <span class="player-tag" id="tag-north"></span>
+      </div>
+      <div class="hand" id="hand-north"></div>
+    </div>
+
+    <!-- Zone centrale : Ouest + pli central + Est -->
+    <div class="middle-row">
+
+      <!-- Joueur Ouest (bot) -->
+      <div class="player-zone west" id="zone-west">
+        <div class="player-info vertical">
+          <span class="player-name">Ouest</span>
+          <span class="player-tag" id="tag-west"></span>
+        </div>
+        <div class="hand hand-vertical" id="hand-west"></div>
+      </div>
+
+      <!-- Plateau central -->
+      <div class="center-area">
+        <!-- Zone de pli en cours -->
+        <div class="trick-area" id="trick-area">
+          <div class="trick-slot" id="trick-north" data-pos="north"><span class="pos-label">Nord</span></div>
+          <div class="trick-row">
+            <div class="trick-slot" id="trick-west" data-pos="west"><span class="pos-label">Ouest</span></div>
+            <div class="trick-center">
+              <div id="trick-winner-badge" class="trick-winner-badge hidden"></div>
+            </div>
+            <div class="trick-slot" id="trick-east" data-pos="east"><span class="pos-label">Est</span></div>
+          </div>
+          <div class="trick-slot" id="trick-south" data-pos="south"><span class="pos-label">Vous</span></div>
+        </div>
+
+        <!-- Compteur de plis -->
+        <div class="tricks-counter">
+          <div class="tc-ns">
+            <span>Vos plis</span>
+            <strong id="tricks-ns">0</strong>
+          </div>
+          <div class="tc-ew">
+            <span>Leurs plis</span>
+            <strong id="tricks-ew">0</strong>
+          </div>
+        </div>
+
+        <!-- Pile des plis gagnés (visuels) -->
+        <div class="won-piles">
+          <div class="pile" id="pile-ns" title="Plis NS"></div>
+          <div class="pile" id="pile-ew" title="Plis EW"></div>
+        </div>
+      </div>
+
+      <!-- Joueur Est (bot) -->
+      <div class="player-zone east" id="zone-east">
+        <div class="hand hand-vertical" id="hand-east"></div>
+        <div class="player-info vertical">
+          <span class="player-name">Est</span>
+          <span class="player-tag" id="tag-east"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Joueur Sud = Vous -->
+    <div class="player-zone south" id="zone-south">
+      <div class="hand" id="hand-south"></div>
+      <div class="player-info">
+        <span class="player-name">Vous</span>
+        <span class="player-tag" id="tag-south"></span>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PANNEAU D'ENCHÈRES (flottant, ne cache pas les cartes)
+═══════════════════════════════════════════════════════════════ -->
+<div id="modal-bid" class="bid-overlay hidden">
+  <div class="bid-panel">
+
+    <!-- Carte retournée + question -->
+    <div class="bid-top-row">
+      <div id="bid-card-display" class="bid-card-display"></div>
+      <div class="bid-text">
+        <p id="bid-instruction">Prendre en <strong id="bid-proposed-suit"></strong> ?</p>
+        <div class="bid-history" id="bid-history"></div>
+      </div>
+    </div>
+
+    <!-- Tour 1 -->
+    <div id="bid-phase1" class="bid-phase">
+      <button class="btn-bid btn-take" id="btn-take">✔ Prendre</button>
+      <button class="btn-bid btn-pass" id="btn-pass1">✖ Passer</button>
+    </div>
+
+    <!-- Tour 2 -->
+    <div id="bid-phase2" class="bid-phase hidden">
+      <span class="bid-choose-label">Choisir l'atout :</span>
+      <div class="suit-buttons">
+        <button class="btn-suit" data-suit="♠">♠</button>
+        <button class="btn-suit" data-suit="♥">♥</button>
+        <button class="btn-suit" data-suit="♦">♦</button>
+        <button class="btn-suit" data-suit="♣">♣</button>
+      </div>
+      <button class="btn-bid btn-pass" id="btn-pass2">✖ Passer</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL : ANNONCES (combinaisons) — compact
+═══════════════════════════════════════════════════════════════ -->
+<div id="modal-announce" class="modal hidden">
+  <div class="modal-box announce-box">
+    <h2>Vos annonces</h2>
+    <p class="announce-sub">Atout : <strong id="announce-trump-suit"></strong></p>
+    <div id="announce-list" class="announce-list"></div>
+    <div id="announce-belote" class="announce-belote hidden">
+      <strong>Belote</strong> (Roi + Dame d'atout) — annoncez en jouant !
+    </div>
+    <button id="btn-announce-ok" class="btn-primary">Jouer</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL : FIN DE MANCHE
+═══════════════════════════════════════════════════════════════ -->
+<div id="modal-round-end" class="modal hidden">
+  <div class="modal-box round-end-box">
+    <h2 id="round-end-title">Fin de manche</h2>
+    <div class="round-scores">
+      <div class="rs-team">
+        <h3>Vous &amp; Sud</h3>
+        <table class="score-table" id="score-table-ns"></table>
+        <div class="rs-total" id="rs-total-ns">0</div>
+      </div>
+      <div class="rs-team">
+        <h3>Est &amp; Ouest</h3>
+        <table class="score-table" id="score-table-ew"></table>
+        <div class="rs-total" id="rs-total-ew">0</div>
+      </div>
+    </div>
+    <div id="round-end-msg" class="round-end-msg"></div>
+    <button id="btn-next-round" class="btn-primary">Manche suivante</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL : FIN DE PARTIE
+═══════════════════════════════════════════════════════════════ -->
+<div id="modal-game-end" class="modal hidden">
+  <div class="modal-box game-end-box">
+    <div id="game-end-content">
+      <h2 id="game-end-title">Partie terminée</h2>
+      <p id="game-end-msg"></p>
+      <div class="final-scores">
+        <div>Vous &amp; Sud : <strong id="final-ns">0</strong></div>
+        <div>Est &amp; Ouest : <strong id="final-ew">0</strong></div>
+      </div>
+    </div>
+    <button id="btn-new-game" class="btn-primary">Nouvelle partie</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOAST (notifications flottantes)
+═══════════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PANNEAU D'AIDE (règles rapides)
+═══════════════════════════════════════════════════════════════ -->
+<button id="btn-help" class="btn-help" title="Règles du jeu">?</button>
+<div id="help-panel" class="help-panel hidden">
+  <button id="btn-help-close" class="btn-help-close">✕</button>
+  <h3>Règles de belote</h3>
+  <p class="rules-note">Cette version applique la belote classique à l’atout. Les objectifs 1001 / 1501 / 2001 permettent d’adapter la durée selon les annonces.</p>
+
+  <h4>Objectif de score</h4>
+  <ul>
+    <li><strong>1001 pts</strong> : format standard, idéal sans annonces ou pour une partie rapide.</li>
+    <li><strong>1501 pts</strong> : conseillé avec annonces, car les bonus peuvent faire monter le score vite.</li>
+    <li><strong>2001 pts</strong> : format long, plus proche d’une logique concours/association.</li>
+  </ul>
+
+  <h4>Valeur des cartes</h4>
+  <table class="rules-table">
+    <tr><th>Carte</th><th>Atout</th><th>Non-atout</th></tr>
+    <tr><td>Valet</td><td>20</td><td>2</td></tr>
+    <tr><td>9</td><td>14</td><td>0</td></tr>
+    <tr><td>As</td><td>11</td><td>11</td></tr>
+    <tr><td>10</td><td>10</td><td>10</td></tr>
+    <tr><td>Roi</td><td>4</td><td>4</td></tr>
+    <tr><td>Dame</td><td>3</td><td>3</td></tr>
+    <tr><td>8 / 7</td><td>0</td><td>0</td></tr>
+  </table>
+
+  <h4>Annonces</h4>
+  <ul>
+    <li>Tierce : 20 pts</li>
+    <li>Cinquante : 50 pts</li>
+    <li>Cent : 100 pts</li>
+    <li>Carré de Valets : 200 pts</li>
+    <li>Carré de 9 : 150 pts</li>
+    <li>Carré d’As, 10, Rois ou Dames : 100 pts</li>
+    <li>Belote-Rebelote : 20 pts</li>
+  </ul>
+
+  <h4>Preneur dedans</h4>
+  <p>Si l’équipe preneuse ne marque pas plus de points de levées que l’équipe adverse, elle est dedans : les adversaires récupèrent les points de la manche selon les règles du jeu.</p>
+</div>
+
+<!-- Scripts -->
+<script src="js/game.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
